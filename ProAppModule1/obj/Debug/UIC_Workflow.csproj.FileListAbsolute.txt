@@ -1,0 +1,11 @@
+c:\users\kwalker\documents\visual studio 2015\Projects\ProAppModule1\ProAppModule1\bin\Debug\ProAppModule1.dll
+c:\users\kwalker\documents\visual studio 2015\Projects\ProAppModule1\ProAppModule1\bin\Debug\ProAppModule1.pdb
+c:\users\kwalker\documents\visual studio 2015\Projects\ProAppModule1\ProAppModule1\obj\Debug\Dockpane1.baml
+c:\users\kwalker\documents\visual studio 2015\Projects\ProAppModule1\ProAppModule1\obj\Debug\Dockpane1.g.cs
+c:\users\kwalker\documents\visual studio 2015\Projects\ProAppModule1\ProAppModule1\obj\Debug\ProAppModule1_MarkupCompile.cache
+c:\users\kwalker\documents\visual studio 2015\Projects\ProAppModule1\ProAppModule1\obj\Debug\ProAppModule1.g.resources
+c:\users\kwalker\documents\visual studio 2015\Projects\ProAppModule1\ProAppModule1\obj\Debug\ProAppModule1.dll
+c:\users\kwalker\documents\visual studio 2015\Projects\ProAppModule1\ProAppModule1\obj\Debug\ProAppModule1.pdb
+C:\Users\kwalker\documents\visual studio 2015\Projects\ProAppModule1\ProAppModule1\obj\Debug\GeneratedInternalTypeHelper.g.cs
+C:\Users\kwalker\documents\visual studio 2015\Projects\ProAppModule1\ProAppModule1\obj\Debug\ProAppModule1_MarkupCompile.lref
+C:\Users\kwalker\Documents\Visual Studio 2015\Projects\ProAppModule1\ProAppModule1\bin\Debug\ProAppModule1.esriAddInX
