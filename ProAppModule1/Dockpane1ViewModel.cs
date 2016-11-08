@@ -21,17 +21,22 @@ namespace ProAppModule1
         private const string _dockPaneID = "ProAppModule1_Dockpane1";
         private ObservableCollection<WorkTask> _tableTasks;
         private int selectedUicId;
+        private UICModel uicModel = UICModel.Instance;
 
         public Dockpane1ViewModel()
         {
             _tableTasks = new ObservableCollection<WorkTask>();
-            WorkTask root = new WorkTask("esri_editing_AttributesDockPane", () => true) { Title = "UIC Workflow" };
-            WorkTask childItem1 = new WorkTask("esri_editing_AttributesDockPane", () => true) { Title = "UIC facility" };
-            childItem1.Items.Add(new WorkTask("esri_editing_AttributesDockPane", () => true) { Title = "Create geometry" });
-            childItem1.Items.Add(new WorkTask("esri_editing_AttributesDockPane", Module1.IsCountyFipsComplete) { Title = "Add county FIPS" });
-            childItem1.Items.Add(new WorkTask("esri_editing_AttributesDockPane", () => true) { Title = "Populate attributes" });
+            WorkTask root = new WorkTask("esri_editing_AttributesDockPane") { Title = "UIC Workflow" };
+            WorkTask childItem1 = new WorkTask("esri_editing_AttributesDockPane") { Title = "UIC facility"};
+            childItem1.Items.Add(new WorkTask("esri_editing_CreateFeaturesDockPane") { Title = "Create geometry", IsCompelete = () => false });
+            childItem1.Items.Add(new WorkTask("esri_editing_AttributesDockPane") { Title = "Add county FIPS", IsCompelete = uicModel.IsCountyFipsComplete });
+            childItem1.Items.Add(new WorkTask("esri_editing_AttributesDockPane") { Title = "Populate attributes", IsCompelete = () => false });
             root.Items.Add(childItem1);
-            root.Items.Add(new WorkTask("esri_editing_CreateFeaturesDockPane", () => true) { Title = "Next one" });
+            WorkTask childItem2 = new WorkTask("esri_editing_AttributesDockPane") { Title = "UIC Well Point" };
+            childItem2.Items.Add(new WorkTask("esri_editing_CreateFeaturesDockPane") { Title = "Create geometry", IsCompelete = () => false });
+            childItem2.Items.Add(new WorkTask("esri_editing_AttributesDockPane") { Title = "Populate attributes", IsCompelete = uicModel.IsWellAtributesComplete });
+            root.Items.Add(childItem2);
+            root.Items.Add(new WorkTask("esri_editing_CreateFeaturesDockPane") { Title = "Next one", Complete = true});
             _tableTasks.Add(root);
         }
 
@@ -65,11 +70,11 @@ namespace ProAppModule1
                 pane.SelectedLayer = featLayer as BasicFeatureLayer;
 
                 //subscribe to row events
-                var rowCreateToken = RowCreatedEvent.Subscribe(pane.onRowEvent, layerTable);
+                var rowCreateToken = RowCreatedEvent.Subscribe(pane.onCreatedRowEvent, layerTable);
                 var rowChangedToken = RowChangedEvent.Subscribe(pane.onRowChangedEvent, layerTable);
             });
         }
-        protected void onRowEvent(RowChangedEventArgs args)
+        protected void onCreatedRowEvent(RowChangedEventArgs args)
         {
 
             Utils.RunOnUIThread(() => {
@@ -81,29 +86,19 @@ namespace ProAppModule1
         protected void onRowChangedEvent(RowChangedEventArgs args)
         {
             var row = args.Row;
-            System.Diagnostics.Debug.WriteLine(Convert.ToString(row["CountyFIPS"]));
-            foreach (WorkTask t in TableTasks)
-            {
-                CheckTaskItems(t);
-            }
-            //if (Convert.ToString(row["CountyFIPS"]).Contains("done"))
-            //{
-            //    System.Diagnostics.Debug.WriteLine("The row is done.");
-            //}
-            //else
-            //{
-            //    System.Diagnostics.Debug.WriteLine("The row is NOT done.");
-            //}
+            UpdateModel(Convert.ToString(row["FacilityID"]));
         }
         private void CheckTaskItems(WorkTask workTask)
         {
             System.Diagnostics.Debug.WriteLine(string.Format("CheckTaskItems: title: {0}, complete: {1}",
                                                              workTask.Title,
                                                              workTask.IsCompelete().ToString()));
+    
             foreach (WorkTask item in workTask.Items)
             {
                 CheckTaskItems(item);
             }
+            workTask.CheckForCompletion();
         }
 
         /// <summary>
@@ -167,7 +162,7 @@ namespace ProAppModule1
         }
         private Task ModifyLayerSelection(SelectionCombinationMethod method)
         {
-            return QueuedTask.Run(() =>
+            Task t = QueuedTask.Run(() =>
             {
                 System.Diagnostics.Debug.WriteLine("Mod Layer Selection");
                 if (MapView.Active == null || SelectedLayer == null || UicSelection == null)
@@ -180,6 +175,15 @@ namespace ProAppModule1
                 SelectedLayer.Select(new QueryFilter() { WhereClause = wc }, method);
                 MapView.Active.ZoomToSelected();
             });
+            this.UpdateModel(UicSelection);
+            this.showPaneTest("esri_editing_AttributesDockPane");
+            return t;
+        }
+
+        private async void UpdateModel (string uicId)
+        {
+            await uicModel.UpdateUicFacility(uicId);
+            this.CheckTaskItems(TableTasks[0]);
         }
 
     }
@@ -199,16 +203,21 @@ namespace ProAppModule1
 
     public class WorkTask: INotifyPropertyChanged
     {
-        public WorkTask(string activePanel, IsTaskCompelted isComplete)
+        public WorkTask(string activePanel)
         {
             this.Items = new ObservableCollection<WorkTask>();
             this.ActivePanel = activePanel;
-            this.IsCompelete = isComplete;
+            this.IsCompelete = this.AreChildrenComplete;
+
+            this.StatusColor = "Red";
+            this.Complete = false;
         }
 
         public string Title { get; set; }
+        public string StatusColor { get; set; }
+        public bool Complete { get; set; }
         public string ActivePanel { get; set; }
-        public IsTaskCompelted IsCompelete { get; }
+        public IsTaskCompelted IsCompelete { get; set; }
 
         bool _isExpanded;
         /// <summary>
@@ -271,6 +280,38 @@ namespace ProAppModule1
 
                 }
             }
+        }
+
+        public bool CheckForCompletion()
+        {
+            bool complete = this.IsCompelete();
+            System.Diagnostics.Debug.WriteLine(String.Format("CheckForCompletion: {0}",
+                                               complete.ToString()));
+            if (complete)
+            {
+                this.StatusColor = "Green";
+                this.Complete = true;
+            }
+            else
+            {
+                this.Complete = false;
+                this.StatusColor = "Black";
+            }
+            this.OnPropertyChanged("Complete");
+            return complete;
+        }
+
+        public bool AreChildrenComplete()
+        {
+            bool complete = true;
+            foreach (WorkTask child in this.Items)
+            {
+                if (!child.Complete)
+                {
+                    return false;
+                }
+            }
+            return complete;
         }
 
         #region INotifyPropertyChanged Members

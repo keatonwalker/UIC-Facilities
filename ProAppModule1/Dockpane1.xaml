@@ -58,6 +58,12 @@
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter Property="FontWeight" Value="Bold" />
                             </Trigger>
+                            <DataTrigger Binding="{Binding Complete}" Value="False">
+                                <Setter Property="Foreground" Value="Black"></Setter>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Complete}" Value="True">
+                                <Setter Property="Foreground" Value="Green"></Setter>
+                            </DataTrigger>
                         </Style.Triggers>
                     </Style>
                 </TreeView.ItemContainerStyle>
